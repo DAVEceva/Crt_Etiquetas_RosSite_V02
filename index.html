@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2196F3">
+  <meta name="description" content="Control de etiquetas de almacén">
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiQ29udHJvbCBkZSBFdGlxdWV0YXMiLCJzaG9ydF9uYW1lIjoiRXRpcXVldGFzIiwic3RhcnRfdXJsIjoiLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiNmZmZmZmYiLCJ0aGVtZV9jb2xvciI6IiMyMTk2RjMifQ==">
+  <title>Control de Etiquetas</title>
+  <style>
+    :root {
+      /* Primitive Color Tokens */
+      --color-white: rgba(255, 255, 255, 1);
+      --color-black: rgba(0, 0, 0, 1);
+      --color-cream-50: rgba(252, 252, 249, 1);
+      --color-cream-100: rgba(255, 255, 253, 1);
+      --color-gray-200: rgba(245, 245, 245, 1);
+      --color-gray-300: rgba(167, 169, 169, 1);
+      --color-gray-400: rgba(119, 124, 124, 1);
+      --color-slate-500: rgba(98, 108, 113, 1);
+      --color-brown-600: rgba(94, 82, 64, 1);
+      --color-charcoal-700: rgba(31, 33, 33, 1);
+      --color-charcoal-800: rgba(38, 40, 40, 1);
+      --color-slate-900: rgba(19, 52, 59, 1);
+      --color-teal-300: rgba(50, 184, 198, 1);
+      --color-teal-400: rgba(45, 166, 178, 1);
+      --color-teal-500: rgba(33, 128, 141, 1);
+      --color-teal-600: rgba(29, 116, 128, 1);
+      --color-teal-700: rgba(26, 104, 115, 1);
+      --color-teal-800: rgba(41, 150, 161, 1);
+
+      /* Custom App Colors */
+      --color-primary: #2196F3;
+      --color-primary-hover: #1976D2;
+      --color-primary-active: #1565C0;
+      --color-success: #4CAF50;
+      --color-warning: #f44336;
+
+      /* Semantic Color Tokens */
+      --color-background: var(--color-cream-50);
+      --color-surface: var(--color-cream-100);
+      --color-text: var(--color-slate-900);
+      --color-text-secondary: var(--color-slate-500);
+      --color-border: rgba(var(--color-brown-600-rgb), 0.2);
+      --color-brown-600-rgb: 94, 82, 64;
+
+      /* Typography */
+      --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-size-sm: 12px;
+      --font-size-base: 14px;
+      --font-size-lg: 16px;
+      --font-size-xl: 18px;
+      --font-size-2xl: 20px;
+      --font-size-3xl: 24px;
+
+      /* Spacing */
+      --space-4: 4px;
+      --space-8: 8px;
+      --space-12: 12px;
+      --space-16: 16px;
+      --space-20: 20px;
+      --space-24: 24px;
+      --space-32: 32px;
+
+      /* Border Radius */
+      --radius-sm: 6px;
+      --radius-base: 8px;
+      --radius-lg: 12px;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      background-color: var(--color-background);
+      color: var(--color-text);
+      font-size: var(--font-size-base);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      background-color: var(--color-primary);
+      color: rgb(226, 217, 217);
+      padding: var(--space-16);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-size: var(--font-size-xl);
+      font-weight: 600;
+      flex: 1;
+      text-align: center;
+    }
+
+    .header-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: var(--font-size-3xl);
+      cursor: pointer;
+      padding: var(--space-8);
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-base);
+      transition: background-color 0.2s;
+    }
+
+    .header-btn:active {
+      background-color: var(--color-primary-hover);
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: var(--space-16);
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Welcome Screen */
+    .welcome-screen {
+      text-align: center;
+      padding: var(--space-32) var(--space-16);
+    }
+
+    .welcome-icon {
+      font-size: 64px;
+      margin-bottom: var(--space-24);
+    }
+
+    .welcome-title {
+      font-size: var(--font-size-3xl);
+      font-weight: 600;
+      margin-bottom: var(--space-16);
+      color: var(--color-text);
+    }
+
+    .welcome-text {
+      font-size: var(--font-size-lg);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-32);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-16) var(--space-32);
+      border-radius: var(--radius-base);
+      font-size: var(--font-size-base);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+      min-height: 48px;
+    }
+
+    .btn-primary {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .btn-primary:active {
+      background: var(--color-primary-hover);
+    }
+
+    .btn-success {
+      background: var(--color-success);
+      color: white;
+    }
+
+    .btn-success:active {
+      background: #45a049;
+    }
+
+    .btn-warning {
+      background: var(--color-warning);
+      color: white;
+    }
+
+    .btn-warning:active {
+      background: #da190b;
+    }
+
+    .btn-block {
+      width: 100%;
+      margin-bottom: var(--space-12);
+    }
+
+    /* List Items */
+    .list-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-base);
+      padding: var(--space-16);
+      margin-bottom: var(--space-12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
+      min-height: 60px;
+    }
+
+    .list-item:active {
+      background: var(--color-gray-200);
+      transform: scale(0.98);
+    }
+
+    .list-item.completed {
+      border-color: var(--color-success);
+      background: rgba(76, 175, 80, 0.05);
+    }
+
+    .list-item-content {
+      flex: 1;
+    }
+
+    .list-item-title {
+      font-weight: 600;
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--space-4);
+      color: var(--color-text);
+    }
+
+    .list-item-subtitle {
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .list-item-badge {
+      background: var(--color-primary);
+      color: white;
+      padding: var(--space-4) var(--space-12);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      margin-left: var(--space-12);
+    }
+
+    .list-item-badge.completed {
+      background: var(--color-success);
+    }
+
+    /* Label Item with Checkbox */
+    .label-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-base);
+      padding: var(--space-16);
+      margin-bottom: var(--space-12);
+      display: flex;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .label-item.validated {
+      border-color: var(--color-success);
+      background: rgba(76, 175, 80, 0.05);
+    }
+
+    .label-checkbox {
+      width: 28px;
+      height: 28px;
+      margin-right: var(--space-16);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .label-info {
+      flex: 1;
+    }
+
+    .label-code {
+      font-weight: 600;
+      font-size: var(--font-size-lg);
+      margin-bottom: var(--space-4);
+      color: var(--color-text);
+    }
+
+    .label-details {
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      padding: var(--space-16);
+      text-align: center;
+      position: sticky;
+      bottom: 0;
+      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .footer-counter {
+      font-size: var(--font-size-lg);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .footer-counter .validated {
+      color: var(--color-success);
+    }
+
+    /* Back Button */
+    .back-button {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-base);
+      padding: var(--space-12) var(--space-16);
+      margin-bottom: var(--space-16);
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: var(--font-size-base);
+      font-weight: 500;
+      color: var(--color-text);
+      min-height: 44px;
+    }
+
+    .back-button:active {
+      background: var(--color-gray-200);
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-16);
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      padding: var(--space-24);
+      max-width: 400px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-title {
+      font-size: var(--font-size-2xl);
+      font-weight: 600;
+      margin-bottom: var(--space-24);
+      color: var(--color-text);
+    }
+
+    .modal-close {
+      background: var(--color-gray-200);
+      border: none;
+      border-radius: var(--radius-base);
+      padding: var(--space-12) var(--space-24);
+      cursor: pointer;
+      font-size: var(--font-size-base);
+      width: 100%;
+      margin-top: var(--space-16);
+      min-height: 44px;
+    }
+
+    .modal-close:active {
+      background: var(--color-gray-300);
+    }
+
+    /* Search Modal */
+    .search-input {
+      width: 100%;
+      padding: var(--space-16);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-base);
+      font-size: var(--font-size-xl);
+      margin-bottom: var(--space-16);
+      text-align: center;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .search-result {
+      margin-top: var(--space-16);
+      padding: var(--space-16);
+      background: var(--color-background);
+      border-radius: var(--radius-base);
+      border: 1px solid var(--color-border);
+    }
+
+    .search-result-code {
+      font-size: var(--font-size-xl);
+      font-weight: 600;
+      margin-bottom: var(--space-8);
+      color: var(--color-text);
+    }
+
+    .search-result-details {
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-base);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-spinner.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Hidden */
+    .hidden {
+      display: none !important;
+    }
+
+    /* File Input */
+    #fileInput {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <button class="header-btn" id="backBtn" style="visibility: hidden;">←</button>
+    <h1 class="header-title">CEVA Logistics</h1>
+    <button class="header-btn" id="menuBtn">☰</button>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="welcome-screen">
+      <div class="welcome-icon">📦</div>
+      <h2 class="welcome-title">Bienvenido</h2>
+      <p class="welcome-text">Importa la HR para comenzar el control de etiquetas</p>
+      <button class="btn btn-primary" onclick="importFile()">Importar HR</button>
+    </div>
+
+    <!-- List View -->
+    <div id="listView" class="hidden">
+      <button class="back-button" id="backButton" onclick="navigateBack()">← Volver</button>
+      <div id="listContainer"></div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer" id="footer" style="display: none;">
+    <div class="footer-counter" id="footerCounter"></div>
+  </footer>
+
+  <!-- Search Button (Floating) -->
+  <button class="header-btn" id="searchBtn" style="position: fixed; bottom: 80px; right: 20px; background: var(--color-primary); width: 56px; height: 56px; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.2); font-size: 24px; display: none;">🔍</button>
+
+  <!-- Menu Modal -->
+  <div class="modal" id="menuModal">
+    <div class="modal-content">
+      <h2 class="modal-title">Menú</h2>
+      <button class="btn btn-primary btn-block" onclick="importFile()">Importar HR</button>
+      <button class="btn btn-success btn-block" onclick="exportResults()">Exportar Resultado</button>
+      <button class="btn btn-warning btn-block" onclick="clearData()">Limpiar Datos</button>
+      <button class="btn btn-warning btn-block" onclick="exitApp()">Salir</button>
+      <button class="modal-close" onclick="closeMenuModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Search Modal -->
+  <div class="modal" id="searchModal">
+    <div class="modal-content">
+      <h2 class="modal-title">Buscar Etiqueta</h2>
+      <input type="text" class="search-input" id="searchInput" placeholder="Código" maxlength="20" autocomplete="off">
+      <div id="searchResult"></div>
+      <button class="modal-close" onclick="closeSearchModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Hidden File Input -->
+  <input type="file" id="fileInput" accept=".xlsx" onchange="handleFileSelect(event)">
+
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
