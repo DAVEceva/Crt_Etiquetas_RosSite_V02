@@ -130,10 +130,8 @@ function setupEventListeners() {
 
 // Handle Search Input (Auto-submit at 8 characters)
 function handleSearchInput(e) {
-  const value = e.target.value.trim().toUpperCase();
-  if (value.length >= 8) {
-    setTimeout(() => handleSearchSubmit(), 100);
-  }
+  // Solo pasar a mayúsculas, sin auto-enviar
+  e.target.value = e.target.value.toUpperCase();
 }
 
 // Handle Search Submit
