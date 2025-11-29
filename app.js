@@ -134,22 +134,32 @@ function handleSearchInput(e) {
 function handleSearchSubmit() {
   const searchInput = document.getElementById('searchInput');
   const searchValue = searchInput.value.trim().toUpperCase();
-  
+
   if (searchValue.length === 0) return;
-  
+
   // Check for duplicates in current context
   const isDuplicate = checkDuplicate(searchValue);
-  
+
   if (isDuplicate) {
     playErrorSound();
     searchInput.value = '';
     return;
   }
-  
+
   // Search for label
   const label = appState.etiquetas.find(e => e.Etiqueta.toUpperCase() === searchValue);
-  
+
   if (label) {
+    // ✅ Validar automáticamente si aún no estaba validada
+    if (!label.validado) {
+      label.validado = true;
+      saveState();
+      updateFooter();
+      if (appState.currentView === 'list') {
+        renderListView();
+      }
+    }
+
     playSuccessSound();
     displaySearchResult(label);
     searchInput.value = '';
@@ -157,21 +167,6 @@ function handleSearchSubmit() {
     playErrorSound();
     searchInput.value = '';
   }
-}
-
-// Check if label is duplicate
-function checkDuplicate(codigo) {
-  // Track scanned codes in this session
-  if (!window.scannedCodes) {
-    window.scannedCodes = new Set();
-  }
-  
-  if (window.scannedCodes.has(codigo)) {
-    return true;
-  }
-  
-  window.scannedCodes.add(codigo);
-  return false;
 }
 
 // Display Search Result
