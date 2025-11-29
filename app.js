@@ -24,16 +24,16 @@ function playSuccessSound() {
   initAudio();
   const oscillator = audioContext.createOscillator();
   const gainNode = audioContext.createGain();
-  
+
   oscillator.connect(gainNode);
   gainNode.connect(audioContext.destination);
-  
+
   oscillator.frequency.value = 800;
   oscillator.type = 'sine';
-  
+
   gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
   gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-  
+
   oscillator.start(audioContext.currentTime);
   oscillator.stop(audioContext.currentTime + 0.2);
 }
@@ -43,35 +43,40 @@ function playErrorSound() {
   initAudio();
   const oscillator = audioContext.createOscillator();
   const gainNode = audioContext.createGain();
-  
+
   oscillator.connect(gainNode);
   gainNode.connect(audioContext.destination);
-  
+
   oscillator.frequency.value = 200;
   oscillator.type = 'sawtooth';
-  
+
   gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
   gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-  
+
   oscillator.start(audioContext.currentTime);
   oscillator.stop(audioContext.currentTime + 0.3);
 }
 
-// Save State to localStorage
+// Save State (memoria + localStorage)
 function saveState() {
   appState.lastSaved = new Date().toISOString();
   try {
     const stateData = JSON.stringify(appState);
-    const stateObj = { data: stateData };
-    window.appStateBackup = stateObj;
+    window.appStateBackup = { data: stateData };
+    localStorage.setItem(STORAGE_KEY, stateData);
   } catch (e) {
     console.error('Error saving state:', e);
   }
 }
 
-// Load State from localStorage
+// Load State (localStorage primero, luego backup)
 function loadState() {
   try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      appState = JSON.parse(stored);
+      return true;
+    }
     if (window.appStateBackup && window.appStateBackup.data) {
       const loaded = JSON.parse(window.appStateBackup.data);
       appState = loaded;
@@ -86,9 +91,8 @@ function loadState() {
 // Initialize App
 function initApp() {
   const hasState = loadState();
-  
+
   if (hasState && appState.etiquetas.length > 0) {
-    // Restore previous session
     if (appState.navigationStack.length > 0) {
       renderListView();
     } else {
@@ -98,12 +102,11 @@ function initApp() {
     document.getElementById('listView').classList.remove('hidden');
     document.getElementById('searchBtn').style.display = 'block';
   } else {
-    // Show welcome screen
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('listView').classList.add('hidden');
     document.getElementById('searchBtn').style.display = 'none';
   }
-  
+
   setupEventListeners();
 }
 
@@ -112,10 +115,10 @@ function setupEventListeners() {
   document.getElementById('menuBtn').addEventListener('click', openMenuModal);
   document.getElementById('searchBtn').addEventListener('click', openSearchModal);
   document.getElementById('backBtn').addEventListener('click', navigateBack);
-  
+
   const searchInput = document.getElementById('searchInput');
   searchInput.addEventListener('input', handleSearchInput);
-  searchInput.addEventListener('keypress', function(e) {
+  searchInput.addEventListener('keypress', function (e) {
     if (e.key === 'Enter') {
       handleSearchSubmit();
     }
@@ -130,7 +133,19 @@ function handleSearchInput(e) {
   }
 }
 
-// Handle Search Submit
+// Check if label is duplicate
+function checkDuplicate(codigo) {
+  if (!window.scannedCodes) {
+    window.scannedCodes = new Set();
+  }
+  if (window.scannedCodes.has(codigo)) {
+    return true;
+  }
+  window.scannedCodes.add(codigo);
+  return false;
+}
+
+// Handle Search Submit (validación automática)
 function handleSearchSubmit() {
   const searchInput = document.getElementById('searchInput');
   const searchValue = searchInput.value.trim().toUpperCase();
@@ -144,12 +159,16 @@ function handleSearchSubmit() {
     return;
   }
 
-  const label = appState.etiquetas.find(
-    e => (e.Etiqueta || '').toString().trim().toUpperCase() === searchValue
-  );
+  const label = appState.etiquetas.find(e => {
+    const code = (e.Etiqueta || '').toString().trim().toUpperCase();
+    const scanned = searchValue.trim().toUpperCase();
+    return (
+      code === scanned ||
+      code.replace(/^0+/, '') === scanned.replace(/^0+/, '')
+    );
+  });
 
   if (label) {
-    // ✅ Marcar como validada
     if (!label.validado) {
       label.validado = true;
       updateFooter();
@@ -197,17 +216,17 @@ function toggleValidation(etiqueta) {
   if (label) {
     label.validado = !label.validado;
     saveState();
-    
-    // Refresh current view if in list mode
+
     if (appState.currentView === 'list') {
       renderListView();
     }
-    
-    // Update search result if displayed
+
     const resultDiv = document.getElementById('searchResult');
     if (resultDiv.innerHTML) {
       displaySearchResult(label);
     }
+
+    updateFooter();
   }
 }
 
@@ -220,18 +239,17 @@ function importFile() {
 function handleFileSelect(event) {
   const file = event.target.files[0];
   if (!file) return;
-  
+
   showLoading();
-  
+
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-      
-      // Process and store data
+
       appState.etiquetas = jsonData.map(row => ({
         Referencia: row.Referencia || '',
         Etiqueta: row.Etiqueta || '',
@@ -240,31 +258,29 @@ function handleFileSelect(event) {
         Ruta: row.Ruta || '',
         validado: false
       }));
-      
+
       appState.navigationStack = [];
       appState.currentView = 'list';
       appState.currentFilter = {};
-      
+
       saveState();
-      
-      // Show rutas list
+
       showRutasList();
-      
+
       document.getElementById('welcomeScreen').classList.add('hidden');
       document.getElementById('listView').classList.remove('hidden');
       document.getElementById('searchBtn').style.display = 'block';
-      
+
       closeMenuModal();
       hideLoading();
-      
-      // Reset scanned codes
+
       window.scannedCodes = new Set();
     } catch (error) {
       alert('Error al leer el archivo. Por favor, verifica el formato.');
       hideLoading();
     }
   };
-  
+
   reader.readAsArrayBuffer(file);
   event.target.value = '';
 }
@@ -273,29 +289,31 @@ function handleFileSelect(event) {
 function showRutasList() {
   appState.navigationStack = [];
   appState.currentFilter = {};
-  
+
   const rutas = [...new Set(appState.etiquetas.map(e => e.Ruta))].filter(r => r);
-  const listHtml = rutas.map(ruta => {
-    const rutaLabels = appState.etiquetas.filter(e => e.Ruta === ruta);
-    const validated = rutaLabels.filter(e => e.validado).length;
-    const total = rutaLabels.length;
-    const isCompleted = validated === total && total > 0;
-    
-    return `
-      <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToRuta('${ruta}')">
-        <div class="list-item-content">
-          <div class="list-item-title">${ruta}</div>
-          <div class="list-item-subtitle">${total} etiquetas</div>
+  const listHtml = rutas
+    .map(ruta => {
+      const rutaLabels = appState.etiquetas.filter(e => e.Ruta === ruta);
+      const validated = rutaLabels.filter(e => e.validado).length;
+      const total = rutaLabels.length;
+      const isCompleted = validated === total && total > 0;
+
+      return `
+        <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToRuta('${ruta}')">
+          <div class="list-item-content">
+            <div class="list-item-title">${ruta}</div>
+            <div class="list-item-subtitle">${total} etiquetas</div>
+          </div>
+          <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
         </div>
-        <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
-      </div>
-    `;
-  }).join('');
-  
+      `;
+    })
+    .join('');
+
   document.getElementById('listContainer').innerHTML = listHtml;
   document.getElementById('backButton').style.display = 'none';
   document.getElementById('backBtn').style.visibility = 'hidden';
-  
+
   updateFooter();
   saveState();
 }
@@ -304,29 +322,31 @@ function showRutasList() {
 function navigateToRuta(ruta) {
   appState.navigationStack.push({ type: 'ruta', value: null });
   appState.currentFilter = { Ruta: ruta };
-  
+
   const ciudades = [...new Set(appState.etiquetas.filter(e => e.Ruta === ruta).map(e => e.Ciudad))].filter(c => c);
-  const listHtml = ciudades.map(ciudad => {
-    const ciudadLabels = appState.etiquetas.filter(e => e.Ruta === ruta && e.Ciudad === ciudad);
-    const validated = ciudadLabels.filter(e => e.validado).length;
-    const total = ciudadLabels.length;
-    const isCompleted = validated === total && total > 0;
-    
-    return `
-      <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToCiudad('${ciudad}')">
-        <div class="list-item-content">
-          <div class="list-item-title">${ciudad}</div>
-          <div class="list-item-subtitle">${total} etiquetas</div>
+  const listHtml = ciudades
+    .map(ciudad => {
+      const ciudadLabels = appState.etiquetas.filter(e => e.Ruta === ruta && e.Ciudad === ciudad);
+      const validated = ciudadLabels.filter(e => e.validado).length;
+      const total = ciudadLabels.length;
+      const isCompleted = validated === total && total > 0;
+
+      return `
+        <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToCiudad('${ciudad}')">
+          <div class="list-item-content">
+            <div class="list-item-title">${ciudad}</div>
+            <div class="list-item-subtitle">${total} etiquetas</div>
+          </div>
+          <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
         </div>
-        <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
-      </div>
-    `;
-  }).join('');
-  
+      `;
+    })
+    .join('');
+
   document.getElementById('listContainer').innerHTML = listHtml;
   document.getElementById('backButton').style.display = 'inline-flex';
   document.getElementById('backBtn').style.visibility = 'visible';
-  
+
   updateFooter();
   saveState();
 }
@@ -335,32 +355,39 @@ function navigateToRuta(ruta) {
 function navigateToCiudad(ciudad) {
   appState.navigationStack.push({ type: 'ciudad', value: appState.currentFilter.Ruta });
   appState.currentFilter.Ciudad = ciudad;
-  
-  const destinos = [...new Set(appState.etiquetas.filter(e => 
-    e.Ruta === appState.currentFilter.Ruta && e.Ciudad === ciudad
-  ).map(e => e.Destino))].filter(d => d);
-  
-  const listHtml = destinos.map(destino => {
-    const destinoLabels = appState.etiquetas.filter(e => 
-      e.Ruta === appState.currentFilter.Ruta && 
-      e.Ciudad === ciudad && 
-      e.Destino === destino
-    );
-    const validated = destinoLabels.filter(e => e.validado).length;
-    const total = destinoLabels.length;
-    const isCompleted = validated === total && total > 0;
-    
-    return `
-      <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToDestino('${destino.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">
-        <div class="list-item-content">
-          <div class="list-item-title">${destino}</div>
-          <div class="list-item-subtitle">${total} etiquetas</div>
+
+  const destinos = [...new Set(
+    appState.etiquetas
+      .filter(e => e.Ruta === appState.currentFilter.Ruta && e.Ciudad === ciudad)
+      .map(e => e.Destino)
+  )].filter(d => d);
+
+  const listHtml = destinos
+    .map(destino => {
+      const destinoLabels = appState.etiquetas.filter(
+        e =>
+          e.Ruta === appState.currentFilter.Ruta &&
+          e.Ciudad === ciudad &&
+          e.Destino === destino
+      );
+      const validated = destinoLabels.filter(e => e.validado).length;
+      const total = destinoLabels.length;
+      const isCompleted = validated === total && total > 0;
+
+      return `
+        <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToDestino('${destino
+          .replace(/'/g, "\\'")
+          .replace(/"/g, '&quot;')}')">
+          <div class="list-item-content">
+            <div class="list-item-title">${destino}</div>
+            <div class="list-item-subtitle">${total} etiquetas</div>
+          </div>
+          <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
         </div>
-        <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
-      </div>
-    `;
-  }).join('');
-  
+      `;
+    })
+    .join('');
+
   document.getElementById('listContainer').innerHTML = listHtml;
   updateFooter();
   saveState();
@@ -368,40 +395,48 @@ function navigateToCiudad(ciudad) {
 
 // Navigate to Destino
 function navigateToDestino(destino) {
-  appState.navigationStack.push({ 
-    type: 'destino', 
+  appState.navigationStack.push({
+    type: 'destino',
     value: { Ruta: appState.currentFilter.Ruta, Ciudad: appState.currentFilter.Ciudad }
   });
   appState.currentFilter.Destino = destino;
-  
-  const referencias = [...new Set(appState.etiquetas.filter(e => 
-    e.Ruta === appState.currentFilter.Ruta && 
-    e.Ciudad === appState.currentFilter.Ciudad && 
-    e.Destino === destino
-  ).map(e => e.Referencia))].filter(r => r);
-  
-  const listHtml = referencias.map(referencia => {
-    const refLabels = appState.etiquetas.filter(e => 
-      e.Ruta === appState.currentFilter.Ruta && 
-      e.Ciudad === appState.currentFilter.Ciudad && 
-      e.Destino === destino && 
-      e.Referencia === referencia
-    );
-    const validated = refLabels.filter(e => e.validado).length;
-    const total = refLabels.length;
-    const isCompleted = validated === total && total > 0;
-    
-    return `
-      <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToReferencia('${referencia}')">
-        <div class="list-item-content">
-          <div class="list-item-title">${referencia}</div>
-          <div class="list-item-subtitle">${total} etiquetas</div>
+
+  const referencias = [...new Set(
+    appState.etiquetas
+      .filter(
+        e =>
+          e.Ruta === appState.currentFilter.Ruta &&
+          e.Ciudad === appState.currentFilter.Ciudad &&
+          e.Destino === destino
+      )
+      .map(e => e.Referencia)
+  )].filter(r => r);
+
+  const listHtml = referencias
+    .map(referencia => {
+      const refLabels = appState.etiquetas.filter(
+        e =>
+          e.Ruta === appState.currentFilter.Ruta &&
+          e.Ciudad === appState.currentFilter.Ciudad &&
+          e.Destino === destino &&
+          e.Referencia === referencia
+      );
+      const validated = refLabels.filter(e => e.validado).length;
+      const total = refLabels.length;
+      const isCompleted = validated === total && total > 0;
+
+      return `
+        <div class="list-item ${isCompleted ? 'completed' : ''}" onclick="navigateToReferencia('${referencia}')">
+          <div class="list-item-content">
+            <div class="list-item-title">${referencia}</div>
+            <div class="list-item-subtitle">${total} etiquetas</div>
+          </div>
+          <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
         </div>
-        <div class="list-item-badge ${isCompleted ? 'completed' : ''}">${validated}/${total}</div>
-      </div>
-    `;
-  }).join('');
-  
+      `;
+    })
+    .join('');
+
   document.getElementById('listContainer').innerHTML = listHtml;
   updateFooter();
   saveState();
@@ -419,14 +454,17 @@ function navigateToReferencia(referencia) {
   });
   appState.currentFilter.Referencia = referencia;
 
-  const labels = appState.etiquetas.filter(e =>
-    e.Ruta === appState.currentFilter.Ruta &&
-    e.Ciudad === appState.currentFilter.Ciudad &&
-    e.Destino === appState.currentFilter.Destino &&
-    e.Referencia === referencia
+  const labels = appState.etiquetas.filter(
+    e =>
+      e.Ruta === appState.currentFilter.Ruta &&
+      e.Ciudad === appState.currentFilter.Ciudad &&
+      e.Destino === appState.currentFilter.Destino &&
+      e.Referencia === referencia
   );
 
-  const listHtml = labels.map(label => `
+  const listHtml = labels
+    .map(
+      label => `
     <div class="label-item ${label.validado ? 'validated' : ''}">
       <div class="label-info">
         <div class="label-code">${label.Etiqueta}</div>
@@ -446,7 +484,9 @@ function navigateToReferencia(referencia) {
         ${label.validado ? 'Desvalidar' : 'Validar'}
       </button>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   document.getElementById('listContainer').innerHTML = listHtml;
   updateFooter();
@@ -456,9 +496,9 @@ function navigateToReferencia(referencia) {
 // Navigate Back
 function navigateBack() {
   if (appState.navigationStack.length === 0) return;
-  
+
   const previous = appState.navigationStack.pop();
-  
+
   if (previous.type === 'ruta') {
     showRutasList();
   } else if (previous.type === 'ciudad') {
@@ -468,13 +508,13 @@ function navigateBack() {
     appState.currentFilter = { Ruta: previous.value.Ruta };
     navigateToCiudad(previous.value.Ciudad);
   } else if (previous.type === 'referencia') {
-    appState.currentFilter = { 
-      Ruta: previous.value.Ruta, 
-      Ciudad: previous.value.Ciudad 
+    appState.currentFilter = {
+      Ruta: previous.value.Ruta,
+      Ciudad: previous.value.Ciudad
     };
     navigateToDestino(previous.value.Destino);
   }
-  
+
   saveState();
 }
 
@@ -483,8 +523,6 @@ function renderListView() {
   if (appState.navigationStack.length === 0) {
     showRutasList();
   } else {
-    const last = appState.navigationStack[appState.navigationStack.length - 1];
-    
     if (appState.currentFilter.Referencia) {
       navigateToReferencia(appState.currentFilter.Referencia);
     } else if (appState.currentFilter.Destino) {
@@ -503,15 +541,15 @@ function renderListView() {
 function updateFooter() {
   const footer = document.getElementById('footer');
   const counter = document.getElementById('footerCounter');
-  
+
   if (appState.etiquetas.length === 0) {
     footer.style.display = 'none';
     return;
   }
-  
+
   const validated = appState.etiquetas.filter(e => e.validado).length;
   const total = appState.etiquetas.length;
-  
+
   counter.innerHTML = `<span class="validated">${validated}</span> / ${total} validadas`;
   footer.style.display = 'block';
 }
@@ -522,9 +560,9 @@ function exportResults() {
     alert('No hay datos para exportar');
     return;
   }
-  
+
   showLoading();
-  
+
   const exportData = appState.etiquetas.map(e => ({
     Referencia: e.Referencia,
     Etiqueta: e.Etiqueta,
@@ -533,14 +571,14 @@ function exportResults() {
     Ruta: e.Ruta,
     Estado: e.validado ? 'OK' : ''
   }));
-  
+
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Resultado');
-  
+
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
   XLSX.writeFile(workbook, `etiquetas_resultado_${timestamp}.xlsx`);
-  
+
   hideLoading();
   closeMenuModal();
 }
@@ -551,7 +589,7 @@ function clearData() {
     closeMenuModal();
     return;
   }
-  
+
   if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
     appState = {
       etiquetas: [],
@@ -560,15 +598,15 @@ function clearData() {
       currentFilter: {},
       lastSaved: null
     };
-    
+
     window.scannedCodes = new Set();
     saveState();
-    
+
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('listView').classList.add('hidden');
     document.getElementById('searchBtn').style.display = 'none';
     document.getElementById('footer').style.display = 'none';
-    
+
     closeMenuModal();
   }
 }
@@ -576,13 +614,13 @@ function clearData() {
 // Exit App
 function exitApp() {
   const hasValidated = appState.etiquetas.some(e => e.validado);
-  
+
   if (hasValidated) {
     if (confirm('Tienes etiquetas validadas. ¿Deseas exportar antes de salir?')) {
       exportResults();
     }
   }
-  
+
   if (confirm('¿Estás seguro de que quieres salir? Se limpiarán todos los datos.')) {
     appState = {
       etiquetas: [],
@@ -591,15 +629,15 @@ function exitApp() {
       currentFilter: {},
       lastSaved: null
     };
-    
+
     window.scannedCodes = new Set();
     saveState();
-    
+
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('listView').classList.add('hidden');
     document.getElementById('searchBtn').style.display = 'none';
     document.getElementById('footer').style.display = 'none';
-    
+
     closeMenuModal();
   }
 }
