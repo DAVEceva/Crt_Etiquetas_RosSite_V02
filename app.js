@@ -57,21 +57,35 @@ function playErrorSound() {
   oscillator.stop(audioContext.currentTime + 0.3);
 }
 
-// Save State to localStorage
+const STORAGE_KEY = 'appState_etiquetas';
+
+// Save State
 function saveState() {
   appState.lastSaved = new Date().toISOString();
   try {
     const stateData = JSON.stringify(appState);
-    const stateObj = { data: stateData };
-    window.appStateBackup = stateObj;
+
+    // Copia en memoria (lo que ya tenías)
+    window.appStateBackup = { data: stateData };
+
+    // ✅ NUEVO: guardar también en localStorage
+    localStorage.setItem(STORAGE_KEY, stateData);
   } catch (e) {
     console.error('Error saving state:', e);
   }
 }
 
-// Load State from localStorage
+// Load State
 function loadState() {
   try {
+    // ✅ PRIMERO: intentar desde localStorage
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      appState = JSON.parse(stored);
+      return true;
+    }
+
+    // LUEGO: fallback al backup en memoria (lo que ya tenías)
     if (window.appStateBackup && window.appStateBackup.data) {
       const loaded = JSON.parse(window.appStateBackup.data);
       appState = loaded;
