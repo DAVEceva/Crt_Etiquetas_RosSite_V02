@@ -184,14 +184,18 @@ function displaySearchResult(label) {
       <div class="search-result-details"><strong>Destino:</strong> ${label.Destino}</div>
       <div class="search-result-details"><strong>Ciudad:</strong> ${label.Ciudad}</div>
       <div class="search-result-details"><strong>Ruta:</strong> ${label.Ruta}</div>
-      <div style="margin-top: 16px;">
-        <label style="display: flex; align-items: center; cursor: pointer; font-size: 16px;">
-          <input type="checkbox" ${label.validado ? 'checked' : ''} 
-                 onchange="toggleValidation('${label.Etiqueta}')"
-                 style="width: 24px; height: 24px; margin-right: 12px;">
-          <span style="font-weight: 600;">Validada</span>
-        </label>
+      <div style="margin-top: 16px; font-size: 16px; font-weight: 600;">
+        Estado: <span style="color:${label.validado ? '#4CAF50' : '#f44336'};">
+          ${label.validado ? 'VALIDADA' : 'PENDIENTE'}
+        </span>
       </div>
+      <button
+        class="btn btn-warning btn-block"
+        onclick="toggleValidation('${label.Etiqueta}')"
+        style="margin-top: 12px;"
+      >
+        ${label.validado ? 'Desvalidar etiqueta' : 'Validar etiqueta'}
+      </button>
     </div>
   `;
 }
@@ -414,35 +418,45 @@ function navigateToDestino(destino) {
 
 // Navigate to Referencia (Show Labels)
 function navigateToReferencia(referencia) {
-  appState.navigationStack.push({ 
-    type: 'referencia', 
-    value: { 
-      Ruta: appState.currentFilter.Ruta, 
+  appState.navigationStack.push({
+    type: 'referencia',
+    value: {
+      Ruta: appState.currentFilter.Ruta,
       Ciudad: appState.currentFilter.Ciudad,
       Destino: appState.currentFilter.Destino
     }
   });
   appState.currentFilter.Referencia = referencia;
-  
-  const labels = appState.etiquetas.filter(e => 
-    e.Ruta === appState.currentFilter.Ruta && 
-    e.Ciudad === appState.currentFilter.Ciudad && 
-    e.Destino === appState.currentFilter.Destino && 
+
+  const labels = appState.etiquetas.filter(e =>
+    e.Ruta === appState.currentFilter.Ruta &&
+    e.Ciudad === appState.currentFilter.Ciudad &&
+    e.Destino === appState.currentFilter.Destino &&
     e.Referencia === referencia
   );
-  
+
   const listHtml = labels.map(label => `
     <div class="label-item ${label.validado ? 'validated' : ''}">
-      <input type="checkbox" class="label-checkbox" 
-             ${label.validado ? 'checked' : ''}
-             onchange="toggleValidation('${label.Etiqueta}')">
       <div class="label-info">
         <div class="label-code">${label.Etiqueta}</div>
         <div class="label-details">${label.Destino}</div>
+        <div class="label-details" style="margin-top:4px;">
+          Estado:
+          <span style="font-weight:600; color:${label.validado ? '#4CAF50' : '#f44336'};">
+            ${label.validado ? 'VALIDADA' : 'PENDIENTE'}
+          </span>
+        </div>
       </div>
+      <button
+        class="btn btn-warning"
+        style="margin-left:12px; padding:8px 12px; min-height:unset;"
+        onclick="toggleValidation('${label.Etiqueta}')"
+      >
+        ${label.validado ? 'Desvalidar' : 'Validar'}
+      </button>
     </div>
   `).join('');
-  
+
   document.getElementById('listContainer').innerHTML = listHtml;
   updateFooter();
   saveState();
