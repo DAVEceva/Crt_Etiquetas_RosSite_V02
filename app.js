@@ -137,27 +137,23 @@ function handleSearchSubmit() {
 
   if (searchValue.length === 0) return;
 
-  // Check for duplicates in current context
   const isDuplicate = checkDuplicate(searchValue);
-
   if (isDuplicate) {
     playErrorSound();
     searchInput.value = '';
     return;
   }
 
-  // Search for label
-  const label = appState.etiquetas.find(e => e.Etiqueta.toUpperCase() === searchValue);
+  const label = appState.etiquetas.find(
+    e => (e.Etiqueta || '').toString().trim().toUpperCase() === searchValue
+  );
 
   if (label) {
-    // ✅ Validar automáticamente si aún no estaba validada
+    // ✅ Marcar como validada
     if (!label.validado) {
       label.validado = true;
-      saveState();
       updateFooter();
-      if (appState.currentView === 'list') {
-        renderListView();
-      }
+      saveState();
     }
 
     playSuccessSound();
