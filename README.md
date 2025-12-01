@@ -1,4 +1,4 @@
-Control de Etiquetas – PWA con Memoria Local
+Control de Etiquetas Site Rosario – PWA
 Aplicación web progresiva (PWA) para control de etiquetas en depósito, diseñada para operarios no técnicos, con memoria persistente y prevención de escaneos duplicados.
 
 Objetivo de la aplicación
